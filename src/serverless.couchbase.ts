@@ -87,7 +87,6 @@ export type ServerlessConfig = {
  * More detail regarding the Couchbase ORM-used can be found here:
  * https://github.com/stoqey/sofa
  * @author Ceddy Muhoza <sup@ceddy.org>
- * @version 0.0.1
  */
 
 export class ServerlessCouchbaseConnection implements ServerlessConfig {
@@ -207,6 +206,7 @@ export class ServerlessCouchbaseConnection implements ServerlessConfig {
 
     /**
      * shutdown cluster
+     * WARNING: Never recommended to close share cluster connection
      */
     public shutdown(): void {
         return this.cluster.close();
@@ -253,21 +253,19 @@ export class ServerlessCouchbaseConnection implements ServerlessConfig {
             this.resetCounter(); // Reset the total use counter
 
             // Return a new promise
-            return new Promise((resolve, reject) => {
-                const startedCouchbase = startSofa(this.couchbaseConfig).then(
-                    (started: boolean) => {
-                        if (!startedCouchbase) {
-                            this.resetClient();
-                            return reject(new Error('error connecting to the couchbase'));
-                        }
-
-                        this.client = SofaConnection.Instance.cluster;
-                        this.resetRetries();
-                        this.onConnect(this.client);
-                        return resolve(started);
+            return new Promise((resolve, reject) =>
+                startSofa(this.couchbaseConfig).then((started: boolean) => {
+                    if (!started) {
+                        this.resetClient();
+                        return reject(new Error('error connecting to the couchbase'));
                     }
-                );
-            }); // end promise
+
+                    this.client = SofaConnection.Instance.cluster;
+                    this.resetRetries();
+                    this.onConnect(this.client);
+                    return resolve(started);
+                })
+            ); // end promise
 
             // Else the client already exists
         } else {

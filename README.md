@@ -1,16 +1,14 @@
 # Serverless couchbase
-[![Serverless Couchbase](https://user-images.githubusercontent.com/2053544/79284452-ac531700-7e88-11ea-8970-81e3e649e00a.png)](https://github.com/jeremydaly/serverless-couchbase/)
+[![Serverless Couchbase](./docs/serverless-couchbase.png)](https://github.com/stoqey/serverless-couchbase/)
 
-[![npm](https://img.shields.io/npm/v/serverless-couchbase.svg)](https://www.npmjs.com/package/serverless-couchbase)
-[![npm](https://img.shields.io/npm/l/serverless-couchbase.svg)](https://www.npmjs.com/package/serverless-couchbase)
+[![npm](https://img.shields.io/npm/v/serverless-couchbase.svg)](https://www.npmjs.com/package/@stoqey/serverless-couchbase)
+[![npm](https://img.shields.io/npm/l/@stoqey/serverless-couchbase.svg)](https://www.npmjs.com/package/@stoqey/serverless-couchbase)
 
 ### A module for managing Couchbase connections at *serverless* scale.
 
-Serverless Couchbase is a wrapper for Stoqey's amazing **[sofa](https://github.com/stoqey/sofa)** Node.js module. Normally, using the `couchbase` module with Node apps would be just fine. However, serverless functions (like AWS Lambda, Google Cloud Functions, and Azure Functions) scale almost infinitely by creating separate instances for each concurrent user. This is a **MAJOR PROBLEM** for DBs solutions like Couchbase, because available connections can be quickly maxed out by competing functions. Not anymore. 😀
+Serverless Couchbase is a wrapper for Stoqey's amazing **[Sofa](https://github.com/stoqey/sofa)** Node.js module. Normally, using the `couchbase` module with Node apps would be just fine. However, serverless functions (like AWS Lambda, Google Cloud Functions, and Azure Functions) scale almost infinitely by creating separate instances for each concurrent user. This is a **MAJOR PROBLEM** for DBs solutions like Couchbase, because available connections can be quickly maxed out by competing functions. Not anymore. 😀
 
 Serverless Couchbase adds a connection management component to the `couchbase` module that is designed specifically for use with serverless applications. This module constantly monitors the number of connections being utilized, and then based on your settings, manages those connections to allow thousands of concurrent executions to share them. It will clean up zombies, enforce connection limits per user, and retry connections using trusted backoff algorithms.
-
-In addition, Serverless Couchbase also adds modern `async/await` support to the `couchbase` module, eliminating callback hell or the need to wrap calls in promises. It also dramatically simplifies **transactions**, giving you a simple and consistent pattern to handle common workflows.
 
 **NOTE:** This module *should* work with any standards-based Couchbase server..
 
@@ -20,10 +18,10 @@ In addition, Serverless Couchbase also adds modern `async/await` support to the 
 // Require and initialize outside of your main handler
 const couchbase = require('serverless-couchbase')({
   config: {
-    host     : process.env.ENDPOINT,
-    database : process.env.DATABASE,
-    user     : process.env.USERNAME,
-    password : process.env.PASSWORD
+    connectionString: string;
+    bucketName: string; // process.env.COUCHBASE_BUCKET,
+    username: string;
+    password: string;
   }
 })
 
@@ -58,7 +56,7 @@ npm i serverless-couchbase
 - Assume AWS endorsed best practices from [here](https://github.com/aws-samples/aws-appsync-rds-aurora-sample/blob/master/src/lamdaresolver/index.js)
 
 ## How to use this module
-Serverless Couchbase wraps the **[couchbase](https://github.com/mysqljs/couchbase)** module, so this module supports pretty much everything that the `couchbase` module does. It uses all the same [connection options](https://github.com/mysqljs/couchbase#connection-options), provides a `query()` method that accepts the same arguments when [performing queries](https://github.com/mysqljs/couchbase#performing-queries) (except the callback), and passes back the query results exactly as the `couchbase` module returns them. There are a few things that don't make sense in serverless environments, like streaming rows, so there is no support for that yet.
+Serverless Couchbase wraps the **[sofa](https://github.com/stoqey/sofa)** module, so this module supports pretty much everything that the `couchbase` module does. It uses all the same connection options, provides a `query()` method that accepts the same arguments when [performing queries](https://github.com/stoqey/sofa#queries) (except the callback), and passes back the query results exactly as the `couchbase` module returns them. There are a few things that don't make sense in serverless environments, like streaming rows, so there is no support for that yet.
 
 To use Serverless Couchbase, require it **OUTSIDE** your main function handler. This will allow for connection reuse between executions. The module must be initialized before its methods are available. [Configuration options](#configuration-options) must be passed in during initialization.
 
@@ -74,14 +72,14 @@ const couchbase = require('serverless-couchbase')({
 })
 ```
 
-Couchbase [connection options](https://github.com/mysqljs/couchbase#connection-options) can be passed in at initialization or later using the `config()` method.
+Couchbase connection options can be passed in at initialization or later using the `config()` method.
 
 ```javascript
 couchbase.config({
-  host     : process.env.ENDPOINT,
-  database : process.env.DATABASE,
-  user     : process.env.USERNAME,
-  password : process.env.PASSWORD
+  connectionString: string;
+  bucketName: string; // process.env.COUCHBASE_BUCKET,
+  username: string;
+  password: string;
 })
 ```
 
@@ -91,20 +89,20 @@ You can explicitly establish a connection using the `connect()` method if you wa
 await couchbase.connect()
 ```
 
-Running queries is super simple using the `query()` method. It supports all [query options](https://github.com/mysqljs/couchbase#performing-queries) supported by the `couchbase` module, but returns a promise instead of using the standard callbacks. You either need to `await` them or wrap them in a promise chain.
+Running queries is super simple using the `query()` method. It supports all [query options](https://github.com/stoqey/sofa#performing-queries) supported by the `couchbase` module, but returns a promise instead of using the standard callbacks. You either need to `await` them or wrap them in a promise chain.
 
 ```javascript
 // Simple query
 let results = await query('SELECT * FROM table')
 
 // Query with placeholder values
-let results = await query('SELECT * FROM table WHERE name = ?', ['serverless'])
+let results = await query('SELECT * FROM table WHERE name = ?')
 
 // Query with advanced options
 let results = await query({
   sql: 'SELECT * FROM table WHERE name = ?',
-  timeout: 10000,
-  values: ['serverless'])
+  timeout: 10000
+  )
 })
 ```
 
@@ -130,8 +128,6 @@ await couchbase.connect()
 // Get the connection object
 let connection = couchbase.getClient()
 
-// Use it to escape a value
-let value = connection.escape('Some value to be escaped')
 ```
 
 ## Configuration Options
@@ -139,8 +135,7 @@ Below is a table containing all of the possible configuration options for `serve
 
 | Property | Type | Description | Default |
 | -------- | ---- | ----------- | ------- |
-| library | `Function` | Custom couchbase library | `require('couchbase')` |
-| promise | `Function` | Custom promise library | `Promise` |
+| library | `Function` | Custom couchbase ORM library | `@stoqey/sofa` |
 | backoff | `String` or `Function` | Backoff algorithm to be used when retrying connections. Possible values are `full` and `decorrelated`, or you can also specify your own algorithm. See [Connection Backoff](#connection-backoff) for more information.  | `full` |
 | base | `Integer` | Number of milliseconds added to random backoff values. | `2` |
 | cap | `Integer` | Maximum number of milliseconds between connection retries. | `100` |
@@ -184,17 +179,6 @@ backoff: (wait,retries) => {
 }
 ```
 
-## Custom libraries
-
-Set your own promise library
-```javascript
-promise: require('bluebird')
-```
-
-Set your own couchbase library, wrapped with AWS x-ray for instance
-```javascript
-library: require('aws-sdk-xray-node')(require('couchbase'));
-```
 
 ## Events
 The module fires seven different types of events: `onConnect`, `onConnectError`, `onRetry`, `onClose`, `onError`, `onKill`, and `onKillError`. These are *reporting* events that allow you to add logging or perform additional actions. You could use these events to short-circuit your handler execution, but using `catch` blocks is preferred. For example, `onError` and `onKillError` are not fatal and will be handled by `serverless-couchbase`. Therefore, they will **NOT** `throw` an error and trigger a `catch` block.
@@ -280,13 +264,19 @@ Other tests that use larger configurations were extremely successful too, but I'
 
 ## Sponsors
 
-[![New Relic](https://user-images.githubusercontent.com/2053544/96728664-55238700-1382-11eb-93cb-82fe7cb5e043.png)](https://ad.doubleclick.net/ddm/trackclk/N1116303.3950900PODSEARCH.COM/B24770737.285235234;dc_trk_aid=479074825;dc_trk_cid=139488579;dc_lat=;dc_rdid=;tag_for_child_directed_treatment=;tfua=;gdpr=${GDPR};gdpr_consent=${GDPR_CONSENT_755})
-<IMG SRC="https://ad.doubleclick.net/ddm/trackimp/N1116303.3950900PODSEARCH.COM/B24770737.285235234;dc_trk_aid=479074825;dc_trk_cid=139488579;ord=[timestamp];dc_lat=;dc_rdid=;tag_for_child_directed_treatment=;tfua=;gdpr=${GDPR};gdpr_consent=${GDPR_CONSENT_755}?" BORDER="0" HEIGHT="1" WIDTH="1" ALT="Advertisement">
+# STQ
+<img width="200" src="./docs/STQ.png"></img>
+
+
+<!-- Package tracking -->
+<!-- <IMG SRC="https://ad.doubleclick.net/ddm/trackimp/N1116303.3950900PODSEARCH.COM/B24770737.285235234;dc_trk_aid=479074825;dc_trk_cid=139488579;ord=[timestamp];dc_lat=;dc_rdid=;tag_for_child_directed_treatment=;tfua=;gdpr=${GDPR};gdpr_consent=${GDPR_CONSENT_755}?" BORDER="0" HEIGHT="1" WIDTH="1" ALT="Advertisement"> -->
 
 ## Contributions
-Contributions, ideas and bug reports are welcome and greatly appreciated. Please add [issues](https://github.com/jeremydaly/serverless-couchbase/issues) for suggestions and bug reports or create a pull request.
+Contributions, ideas and bug reports are welcome and greatly appreciated. Please add [issues](https://github.com/stoqey/serverless-couchbase/issues) for suggestions and bug reports or create a pull request.
+
 
 ## TODO
-- Add `changeUser` support
-- Add connection retries on failed queries
-- Add automated tests and coverage reports
+- Add defaults 
+- Tests
+- Test module
+- Use ping to check already connected
