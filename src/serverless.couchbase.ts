@@ -273,7 +273,7 @@ export class ServerlessCouchbaseConnection implements ServerlessConfig {
         } // end if-else
     }; // end _connect
 
-    // Function that explicitly closes the MySQL connection.
+    // Function that explicitly closes the Couchbase connection.
     public quit = (): void => {
         if (this.client !== null) {
             this.client.close(); // Quit the connection.

@@ -139,7 +139,7 @@ Below is a table containing all of the possible configuration options for `serve
 | backoff | `String` or `Function` | Backoff algorithm to be used when retrying connections. Possible values are `full` and `decorrelated`, or you can also specify your own algorithm. See [Connection Backoff](#connection-backoff) for more information.  | `full` |
 | base | `Integer` | Number of milliseconds added to random backoff values. | `2` |
 | cap | `Integer` | Maximum number of milliseconds between connection retries. | `100` |
-| config | `Object` | A `couchbase` configuration object as defined [here](https://github.com/mysqljs/couchbase#connection-options) | `{}` |
+| config | `Object` | A `couchbase` configuration object as defined [here](https://github.com/stoqey/sofa#connection-options) | `{}` |
 | connUtilization | `Number` | The percentage of total connections to use when connecting to your Couchbase server. A value of `0.75` would use 75% of your total available connections. | `0.8` |
 | manageConns | `Boolean` | Flag indicating whether or not you want `serverless-couchbase` to manage Couchbase connections for you. | `true` |
 | maxConnsFreq | `Integer` | The number of milliseconds to cache lookups of @@max_connections. | `15000` |
@@ -205,7 +205,7 @@ If you set max `user_connections`, the module will only manage connections for t
 If you're not setting max `user_connections`, the user **MUST BE** granted the `PROCESS` privilege in order to count other connections. Otherwise it will assume that its connections are the only ones being used. Granting `PROCESS` is fairly safe as it is a *read only* permission and doesn't expose any sensitive data.
 
 ## Query Timeouts
-The `couchbase` module allows you to specify a "[timeout](https://github.com/mysqljs/couchbase#timeouts)" with each query. Typically this will disconnect the connection and prevent you from running additional queries. `serverless-couchbase` handles timeouts a bit more elegantly by throwing an error and `destroy()`ing the connection. This will reset the connection completely, allowing you to run additional queries **AFTER** you catch the error.
+The `couchbase` module allows you to specify a "[timeout](https://github.com/stoqey/sofa#timeouts)" with each query. Typically this will disconnect the connection and prevent you from running additional queries. `serverless-couchbase` handles timeouts a bit more elegantly by throwing an error and `destroy()`ing the connection. This will reset the connection completely, allowing you to run additional queries **AFTER** you catch the error.
 
 ## Transaction Support
 Transaction support in `serverless-couchbase` has been dramatically simplified. Start a new transaction using the `transaction()` method, and then chain queries using the `query()` method. The `query()` method supports all standard query options. Alternatively, you can specify a function as the only argument in a `query()` method call and return the arguments as an array of values. The function receives two arguments, the result of the last query executed and an array containing all the previous query results. This is useful if you need values from a previous query as part of your transaction.
