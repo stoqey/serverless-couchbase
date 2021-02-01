@@ -1,8 +1,8 @@
 {
-  "name": "@stoqey/client-graphql",
+  "name": "@stoqey/serverless-couchbase",
   "private": false,
   "version": "0.0.1",
-  "description": "Shared graphql fragments, queries, mutations for stoqey clients",
+  "description": "A module for managing Couchbase connections at serverless scale.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -35,24 +35,32 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/stoqey/client-graphql.git"
+    "url": "git://github.com/stoqey/serverless-couchbase.git"
   },
   "keywords": [
-    "graphql",
+    "serverless",
+    "couchbase",
+    "max_connections",
+    "scalability",
+    "rds",
+    "aurora serverless",
+    "aurora",
+    "firebase",
+    "lambda",
+    "aws",
     "stoqey",
-    "algorithms",
-    "stocks"
+    "stoqey.com"
   ],
   "author": {
     "name": "Ceddy Muhoza",
-    "email": "ceddymuhoza@gmail.com",
+    "email": "sup@ceddy.org",
     "url": "https://ceddy.org"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/stoqey/client-graphql/issues"
+    "url": "https://github.com/stoqey/serverless-couchbase/issues"
   },
-  "homepage": "https://github.com/stoqey/client-graphql",
+  "homepage": "https://github.com/stoqey/serverless-couchbase",
   "devDependencies": {
     "@types/node": "^10.0.3",
     "@types/source-map-support": "^0.4.0",
@@ -78,5 +86,6 @@
     "typescript": ">=2.0"
   },
   "dependencies": {
+    "@stoqey/sofa": "^0.1.4"
   }
 }
