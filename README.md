@@ -198,11 +198,7 @@ onRetry: (err,retries,delay,type) => { console.log('RETRY') }
 ```
 
 ## Couchbase Server Configuration
-There really isn't anything special that needs to be done in order for your Couchbase server (including RDS, Aurora, and Aurora Serverless) to use `serverless-couchbase`. You should just be aware of the following two scenarios.
-
-If you set max `user_connections`, the module will only manage connections for that user. This is useful if you have multiple clients connecting to the same Couchbase server (or cluster) and you want to make sure your serverless app doesn't use all of the available connections.
-
-If you're not setting max `user_connections`, the user **MUST BE** granted the `PROCESS` privilege in order to count other connections. Otherwise it will assume that its connections are the only ones being used. Granting `PROCESS` is fairly safe as it is a *read only* permission and doesn't expose any sensitive data.
+There really isn't anything special that needs to be done in order for your Couchbase server (including AWS lambda, GCP functions/Firebase, Azure) to use `serverless-couchbase`. You should just be aware of the following two scenarios.
 
 ## Query Timeouts
 The `couchbase` module allows you to specify a "[timeout](https://github.com/stoqey/sofa#timeouts)" with each query. Typically this will disconnect the connection and prevent you from running additional queries. `serverless-couchbase` handles timeouts a bit more elegantly by throwing an error and `destroy()`ing the connection. This will reset the connection completely, allowing you to run additional queries **AFTER** you catch the error.
@@ -246,21 +242,9 @@ let results = await couchbase.transaction()
   .commit() // execute the queries
 ```
 
-If the record to `DELETE` doesn't exist, the `UPDATE` will not be performed. If the `UPDATE` fails, the `DELETE` will be rolled back.
-
-**NOTE:** Transaction support is designed for InnoDB tables (default). Other table types may not behave as expected.
 
 ## Reusing Persistent Connections
 If you're using AWS Lambda with **callbacks**, be sure to set `context.callbackWaitsForEmptyEventLoop = false;` in your main handler. This will allow the freezing of connections and will prevent Lambda from hanging on open connections. See [here](https://www.jeremydaly.com/reuse-database-connections-aws-lambda/) for more information. If you are using `async` functions, this is no longer necessary.
-
-## Tests
-I've run *a lot* of tests using a number of different configurations. Ramp ups appear to work best, but once there are several warm containers, the response times are much better. Below is an example test I ran using AWS Lambda and Aurora Serverless. Aurora Serverless was configured with *2 ACUs* (and it didn't autoscale), so there were only **90 connections** available to the Couchbase cluster. The Lambda function was configured with 1,024 MB of memory. This test simulated **500 users** per second for one minute. Each user ran a sample query retrieving a few rows from a table.
-
-From the graph below you can see that the average response time was **41 ms** (min 20 ms, max 3743 ms) with **ZERO** errors.
-
-![Serverless Couchbase test - 500 connections per second w/ 90 connections available](https://www.jeremydaly.com/wp-content/uploads/2018/09/serverless-couchbase-test-500users-90-connections.png)
-
-Other tests that use larger configurations were extremely successful too, but I'd appreciate other independent tests to verify my assumptions.
 
 ## Sponsors
 
