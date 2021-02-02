@@ -1,17 +1,19 @@
 import {SofaConnection, Cluster, Collection, QueryResult, startSofa} from '@stoqey/sofa';
 
-export interface SofaArgs {
+export interface ConfigArgs {
     connectionString: string;
     bucketName: string;
     username: string;
     password: string;
 }
 
+SofaConnection.Instance; // initialise the SofaConnection
+
 export type ServerlessConfig = {
     /**
      * String or Function  Backoff algorithm to be used when retrying connections. Possible values are full and decorrelated, or you can also specify your own algorithm. See Connection Backoff for more information.  full
      */
-    backoff?: string | Function;
+    backoff?: string | any;
     /**
      * Integer  Number of milliseconds added to random backoff values.  2
      */
@@ -23,7 +25,7 @@ export type ServerlessConfig = {
     /**
      * Object  A Couchbase configuration object as defined here  {}
      */
-    couchbaseConfig?: SofaArgs;
+    couchbaseConfig?: ConfigArgs;
     /**
      * Number  The percentage of total connections to use when connecting to your Couchbase server. A value of 0.75 would use 75% of your total available connections.  0.8
      */
@@ -43,31 +45,31 @@ export type ServerlessConfig = {
     /**
      * function  Event callback when the Couchbase connection fires an error.
      */
-    onError?: Function;
+    onError?: any;
     /**
      * function  Event callback when Couchbase connections are explicitly closed.
      */
-    onClose?: Function;
+    onClose?: any;
     /**
      * function  Event callback when connections are succesfully established.
      */
-    onConnect?: Function;
+    onConnect?: any;
     /**
      * function  Event callback when connection fails.
      */
-    onConnectError?: Function;
+    onConnectError?: any;
     /**
      * function  Event callback when connections are explicitly killed.
      */
-    onKill?: Function;
+    onKill?: any;
     /**
      * function  Event callback when a connection cannot be killed.
      */
-    onKillError?: Function;
+    onKillError?: any;
     /**
      * function  Event callback when connections are retried.
      */
-    onRetry?: Function;
+    onRetry?: any;
     /**
      * Integer  The number of milliseconds to cache lookups of current connection usage.  0
      */
@@ -89,56 +91,56 @@ export type ServerlessConfig = {
  * @author Ceddy Muhoza <sup@ceddy.org>
  */
 
-export class ServerlessCouchbaseConnection implements ServerlessConfig {
-    private static _instance: ServerlessCouchbaseConnection;
+export class ServerlessCouchbase implements ServerlessConfig {
+    private static _instance: ServerlessCouchbase;
 
     // Args
     counter: any;
-    client: Cluster;
+    client: Cluster = null;
     retries: number;
     errors: any;
-    this: any;
     bucket: any;
     cluster: any;
 
-    public static get Instance(): ServerlessCouchbaseConnection {
+    public static get Instance(): ServerlessCouchbase {
         return this._instance || (this._instance = new this());
     }
 
     private constructor() {}
 
-    backoff?: string | Function;
+    backoff?: string | any;
     base?: number;
     cap?: number;
-    couchbaseConfig?: SofaArgs = null;
+    couchbaseConfig?: ConfigArgs = null;
     connUtilization?: number;
     manageConns?: boolean;
     maxConnsFreq?: number;
     maxRetries?: number;
-    onError?: Function;
-    onClose?: Function;
-    onConnect?: Function;
-    onConnectError?: Function;
-    onKill?: Function;
-    onKillError?: Function;
-    onRetry?: Function;
+    onError?: any; // (error: Error) => void;
+    onClose?: any; // () => void;
+    onConnect?: any; //(client: any) => void;
+    onConnectError?: any; // (error: Error) => void;
+    onKill?: any;
+    onKillError?: any; // (error: Error) => void;
+    onRetry?: any;
     usedConnsFreq?: number;
     zombieMaxTimeout?: number;
     zombieMinTimeout?: number;
 
-    getCounter = () => this.counter;
-    incCounter = () => this.counter++;
-    resetCounter = () => (this.counter = 0);
-    getClient = () => this.client;
-    resetClient = () => (this.client = null);
-    resetRetries = () => (this.retries = 0);
-    getErrorCount = () => this.errors;
-    getConfig = (): SofaArgs => this.couchbaseConfig;
-    config = (args: SofaArgs): SofaArgs => (this.couchbaseConfig = args);
-    delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-    randRange = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
-    fullJitter = () => this.randRange(0, Math.min(this.cap, this.base * 2 ** this.retries));
-    decorrelatedJitter = (sleep = 0) => Math.min(this.cap, this.randRange(this.base, sleep * 3));
+    getCounter = (): any => this.counter;
+    incCounter = (): any => this.counter++;
+    resetCounter = (): any => (this.counter = 0);
+    getClient = (): any => this.client;
+    resetClient = (): any => (this.client = null);
+    resetRetries = (): any => (this.retries = 0);
+    getErrorCount = (): any => this.errors;
+    getConfig = (): ConfigArgs => this.couchbaseConfig;
+    delay = (ms: number): any => new Promise((res) => setTimeout(res, ms));
+    randRange = (min: number, max: number): any =>
+        Math.floor(Math.random() * (max - min + 1)) + min;
+    fullJitter = (): any => this.randRange(0, Math.min(this.cap, this.base * 2 ** this.retries));
+    decorrelatedJitter = (sleep = 0): any =>
+        Math.min(this.cap, this.randRange(this.base, sleep * 3));
 
     tooManyConnsErrors = [
         'PROTOCOL_CONNECTION_LOST', // if the connection is lost
@@ -151,10 +153,12 @@ export class ServerlessCouchbaseConnection implements ServerlessConfig {
         'UNREACHABLE_NETWORK',
     ];
 
+    public config = (args: ConfigArgs): ConfigArgs => this.init({couchbaseConfig: args});
+
     /**
      * start
      */
-    public init(params: ServerlessConfig): SofaArgs {
+    public init(params: ServerlessConfig): ConfigArgs {
         /********************************************************************/
         /**  INITIALIZATION                                                **/
         /********************************************************************/
@@ -166,7 +170,7 @@ export class ServerlessCouchbaseConnection implements ServerlessConfig {
         this.base = Number.isInteger(cfg.base) ? cfg.base : 2; // default to 2 ms
         this.maxRetries = Number.isInteger(cfg.maxRetries) ? cfg.maxRetries : 50; // default to 50 attempts
         this.backoff =
-            typeof cfg.backoff === 'function'
+            cfg && cfg.backoff
                 ? cfg.backoff
                 : cfg.backoff && ['full', 'decorrelated'].includes(cfg.backoff.toLowerCase())
                 ? cfg.backoff.toLowerCase()
@@ -179,21 +183,19 @@ export class ServerlessCouchbaseConnection implements ServerlessConfig {
         this.maxConnsFreq = Number.isInteger(cfg.maxConnsFreq) ? cfg.maxConnsFreq : 15 * 1000; // default to 15 seconds
         this.usedConnsFreq = Number.isInteger(cfg.usedConnsFreq) ? cfg.usedConnsFreq : 0; // default to 0 ms
 
-        this.this.onConnect = typeof cfg.onConnect === 'function' ? cfg.onConnect : () => {}; // Event handlers
-        this.onConnectError =
-            typeof cfg.onConnectError === 'function' ? cfg.onConnectError : () => {};
-        this.onRetry = typeof cfg.onRetry === 'function' ? cfg.onRetry : () => {};
-        this.onClose = typeof cfg.onClose === 'function' ? cfg.onClose : () => {};
-        this.onError = typeof cfg.onError === 'function' ? cfg.onError : () => {};
-        this.onKill = typeof cfg.onKill === 'function' ? cfg.onKill : () => {};
-        this.onKillError = typeof cfg.onKillError === 'function' ? cfg.onKillError : () => {};
+        this.onConnect = cfg && cfg.onConnect ? cfg.onConnect : () => {}; // Event handlers
+        this.onConnectError = cfg && cfg.onConnectError ? cfg.onConnectError : () => {};
+        this.onRetry = cfg && cfg.onRetry ? cfg.onRetry : () => {};
+        this.onClose = cfg && cfg.onClose ? cfg.onClose : () => {};
+        this.onError = cfg && cfg.onError ? cfg.onError : () => {};
+        this.onKill = cfg && cfg.onKill ? cfg.onKill : () => {};
+        this.onKillError = cfg && cfg.onKillError ? cfg.onKillError : () => {};
 
-        const connCfg: SofaArgs =
-            typeof cfg.couchbaseConfig === 'object' && !Array.isArray(cfg.couchbaseConfig)
+        const connCfg: ConfigArgs =
+            cfg && cfg.couchbaseConfig && !Array.isArray(cfg.couchbaseConfig)
                 ? cfg.couchbaseConfig
                 : ({} as any);
-        // Set Couchbase configs
-        this.config(connCfg);
+        this.couchbaseConfig = cfg.couchbaseConfig;
         return connCfg;
     }
 
@@ -212,14 +214,24 @@ export class ServerlessCouchbaseConnection implements ServerlessConfig {
         return this.cluster.close();
     }
 
+    /**
+     * refresh
+     */
+    public refresh(): void {
+        this.cluster = SofaConnection.Instance.getCluster();
+    }
+
     /********************************************************************/
     /**  CONNECTION MANAGEMENT FUNCTIONS                               **/
     /********************************************************************/
 
     // Public connect method, handles backoff and catches
     // TOO MANY CONNECTIONS errors
-    connect = async (wait?: number) => {
+    connect = async (wait?: number): Promise<void> => {
         try {
+            if (this.client) {
+                return console.log('already connected');
+            }
             await this._connect();
         } catch (e) {
             if (this.tooManyConnsErrors.includes(e.code) && this.retries < this.maxRetries) {
@@ -246,31 +258,31 @@ export class ServerlessCouchbaseConnection implements ServerlessConfig {
     }; // end connect
 
     // Internal connect method
-    _connect = (): Promise<boolean> => {
-        if (this.client === null) {
-            // if no client connection exists
-
-            this.resetCounter(); // Reset the total use counter
-
-            // Return a new promise
-            return new Promise((resolve, reject) =>
-                startSofa(this.couchbaseConfig).then((started: boolean) => {
-                    if (!started) {
-                        this.resetClient();
-                        return reject(new Error('error connecting to the couchbase'));
-                    }
-
-                    this.client = SofaConnection.Instance.cluster;
-                    this.resetRetries();
-                    this.onConnect(this.client);
-                    return resolve(started);
-                })
-            ); // end promise
-
-            // Else the client already exists
-        } else {
+    _connect = async (): Promise<boolean> => {
+        if (this.client) {
+            console.log('Already connected');
             return Promise.resolve(true);
-        } // end if-else
+        }
+
+        // if no client connection exists
+        this.resetCounter(); // Reset the total use counter
+
+        // Return a new promise
+        return await new Promise((resolve, reject) =>
+            startSofa(this.couchbaseConfig).then((started: boolean) => {
+                if (!started) {
+                    this.resetClient();
+                    return reject(new Error('error connecting to the couchbase'));
+                }
+
+                console.log('Couchbase started with', this.couchbaseConfig);
+
+                this.client = SofaConnection.Instance.getCluster();
+                this.resetRetries();
+                this.onConnect(this.client);
+                return resolve(started);
+            })
+        ); // end promise
     }; // end _connect
 
     // Function that explicitly closes the Couchbase connection.
@@ -302,29 +314,11 @@ export class ServerlessCouchbaseConnection implements ServerlessConfig {
                 this.client.query(query, options, async (err: Error, results: QueryResult) => {
                     // TODO check error message
                     if (err) {
+                        console.error(err);
                         this.client.close(); // destroy connection on timeout
                         this.resetClient(); // reset the client
                         reject(err); // reject the promise with the error
                     }
-                    // if (err && err.code === 'PROTOCOL_SEQUENCE_TIMEOUT') {
-                    //     this.client.close(); // destroy connection on timeout
-                    //     this.resetClient(); // reset the client
-                    //     reject(err); // reject the promise with the error
-                    // } else if (
-                    //     err &&
-                    //     (/^PROTOCOL_ENQUEUE_AFTER_/.test(err.code) ||
-                    //         err.code === 'PROTOCOL_CONNECTION_LOST' ||
-                    //         err.code === 'EPIPE')
-                    // ) {
-                    //     this.resetClient(); // reset the client
-                    //     return resolve(this.query(...args)); // attempt the query again
-                    // } else if (err) {
-                    //     if (this && this.rollback) {
-                    //         await this.query('ROLLBACK');
-                    //         this.rollback(err);
-                    //     }
-                    //     reject(err);
-                    // }
                     return resolve(results);
                 });
             }
@@ -332,4 +326,4 @@ export class ServerlessCouchbaseConnection implements ServerlessConfig {
     }; // end query
 }
 
-export default ServerlessCouchbaseConnection;
+export default ServerlessCouchbase;
