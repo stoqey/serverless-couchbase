@@ -15,23 +15,22 @@ Serverless Couchbase adds a connection management component to the `couchbase` m
 ## Simple Example
 
 ```javascript
+const {  startCouchbase, query } = require('serverless-couchbase');
+
+
 // Require and initialize outside of your main handler
-const couchbase = require('serverless-couchbase')({
-  config: {
+const config = {
     connectionString: string;
     bucketName: string; // process.env.COUCHBASE_BUCKET,
     username: string;
     password: string;
-  }
-})
+};
+startCouchbase(config);
 
 // Main handler function
 exports.handler = async (event, context) => {
   // Run your query
-  let results = await couchbase.query('SELECT * FROM table')
-
-  // Run clean up function
-  await couchbase.end()
+  let results = await query('SELECT * FROM table')
 
   // Return the results
   return results
@@ -62,10 +61,12 @@ To use Serverless Couchbase, require it **OUTSIDE** your main function handler. 
 
 ```javascript
 // Require and initialize with default options
-const couchbase = require('serverless-couchbase')() // <-- initialize with function call
+const {ServerlessCouchbase} = require('serverless-couchbase') 
 
-// OR include configuration options
-const couchbase = require('serverless-couchbase')({
+const couchbase = ServerlessCouchbase.Instance; // <-- initialize with Instance
+
+// include configuration options
+couchbase.config({
   backoff: 'decorrelated',
   base: 5,
   cap: 200
